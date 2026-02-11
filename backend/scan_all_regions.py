@@ -1,54 +1,76 @@
-import socket
+import pg8000.native
 import ssl
 import sys
 
 # Project and Password
 project_ref = "wdlkjjrrdslfpplohmsq"
-# We don't even need the password to check "Tenant not found" vs "Password authentication failed"
-# But we need to send a startup packet.
-# We can use a raw socket SSL handshake + startup message, OR just use psycopg2/pg8000.
-# Let's use psycopg2 as it's installed and reliable if we don't crash.
-# Wait, check_region.py didn't crash on us-east-1. It crashed on output emoji.
-# So I can use psycopg2.
-
-import psycopg2
-
-password = "%40Catejusto7031" # Encoded
+password = "Cybercafe2026"
 
 regions = [
+    # AWS
+    "aws-0-eu-west-1", # Ireland (Most likely)
     "aws-0-us-east-1", "aws-0-us-east-2", "aws-0-us-west-1", "aws-0-us-west-2",
-    "aws-0-eu-central-1", "aws-0-eu-west-1", "aws-0-eu-west-2", "aws-0-eu-west-3", "aws-0-eu-north-1",
+    "aws-0-eu-central-1", "aws-0-eu-west-2", "aws-0-eu-west-3", "aws-0-eu-north-1",
     "aws-0-ap-southeast-1", "aws-0-ap-southeast-2", "aws-0-ap-northeast-1", "aws-0-ap-northeast-2",
-    "aws-0-ap-south-1", "aws-0-sa-east-1", "aws-0-ca-central-1"
+    "aws-0-ap-south-1", "aws-0-sa-east-1", "aws-0-ca-central-1", "aws-0-af-south-1",
+    # GCP
+    "gcp-0-us-east-1", "gcp-0-eu-west-1", "gcp-0-ap-southeast-1"
 ]
 
-print(f"Scanning ALL regions for project: {project_ref}")
+print(f"Scanning ALL regions for project: {project_ref} (using pg8000)")
+
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 for region in regions:
     host = f"{region}.pooler.supabase.com"
     port = 6543
     dbname = "postgres"
     user = f"postgres.{project_ref}"
-    dsn = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
     
     print(f"Checking {region}...", end=" ")
     sys.stdout.flush()
     
     try:
-        conn = psycopg2.connect(dsn, connect_timeout=3)
-        print(f"SUCCESS! FOUND {region}")
+        conn = pg8000.native.Connection(
+            user=user,
+            password=password,
+            host=host,
+            port=port,
+            database=dbname,
+            ssl_context=ssl_context,
+            timeout=5
+        )
+        print("SUCCESS! FOUND IT!")
         conn.close()
-        break
-    except psycopg2.OperationalError as e:
+        
+        # We found it! Update .env
+        dsn = f"postgresql://postgres.{project_ref}:{password}@{host}:{port}/{dbname}"
+        with open(".env", "w") as f:
+             f.write(f"DATABASE_URL={dsn}\n")
+             f.write("REDIS_URL=redis://localhost:6379\n") 
+             f.write("SECRET_KEY=sb_publishable_6Yr9_gzE64oHgWS6MezZLA_FKYX1Yq-\n")
+             f.write("ALGORITHM=HS256\n")
+             f.write("ACCESS_TOKEN_EXPIRE_MINUTES=15\n")
+             f.write("REFRESH_TOKEN_EXPIRE_DAYS=7\n")
+             f.write(f"CORS_ORIGINS=http://localhost:3000,http://localhost:5173,https://{project_ref}.supabase.co\n")
+             f.write("APP_NAME=CyberCafe POS Pro\n")
+             f.write("DEBUG=True\n")
+        
+        print(f"Updated .env for region: {region}")
+        sys.exit(0)
+        
+    except Exception as e:
         err_msg = str(e).strip()
-        if "Tenant or user not found" in err_msg:
+        if "password authentication failed" in err_msg:
+            print("FOUND! (Bad Password)")
+            sys.exit(0) # Stop here if we found the region but pass is wrong
+        elif "Tenant or user not found" in err_msg:
             print("Not here.")
-        elif "password authentication failed" in err_msg:
-            print(f"FOUND! {region} (Bad Password)")
-            break
-        elif "could not translate host name" in err_msg:
+        elif "gaierror" in err_msg:
              print("DNS Error.")
         else:
             print(f"Error: {err_msg}")
-    except Exception as e:
-        print(f"Error: {e}")
+
+print("\nScan complete. No matches found.")
