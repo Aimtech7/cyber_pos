@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Redis only - using Supabase for PostgreSQL
+  redis:
+    image: redis:7-alpine
+    container_name: cybercafe_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: cybercafe_backend
+    env_file:
+      - ./backend/.env
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${API_URL:-http://localhost:8000}
+        VITE_WS_URL: ${WS_URL:-ws://localhost:8000}
+    container_name: cybercafe_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
