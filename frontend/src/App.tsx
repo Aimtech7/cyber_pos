@@ -1,12 +1,15 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ShiftProvider } from './context/ShiftContext';
 import Login from './pages/Login';
 import POSDashboard from './pages/pos/POSDashboard';
 import NewSale from './pages/pos/NewSale';
 import Sessions from './pages/pos/Sessions';
+import Transactions from './pages/pos/Transactions';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Services from './pages/admin/Services';
+import Inventory from './pages/admin/Inventory';
 import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
 import './index.css';
@@ -68,6 +71,14 @@ function AppRoutes() {
                     </ProtectedRoute>
                 }
             />
+            <Route
+                path="/pos/transactions"
+                element={
+                    <ProtectedRoute>
+                        <Transactions />
+                    </ProtectedRoute>
+                }
+            />
 
             {/* Admin Routes */}
             <Route
@@ -91,6 +102,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute allowedRoles={['ADMIN']}>
                         <Users />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/inventory"
+                element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+                        <Inventory />
                     </ProtectedRoute>
                 }
             />
@@ -125,9 +144,11 @@ function AppRoutes() {
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <AppRoutes />
-            </BrowserRouter>
+            <ShiftProvider>
+                <BrowserRouter>
+                    <AppRoutes />
+                </BrowserRouter>
+            </ShiftProvider>
         </AuthProvider>
     );
 }

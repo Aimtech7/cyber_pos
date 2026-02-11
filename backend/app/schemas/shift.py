@@ -12,6 +12,7 @@ class ShiftOpen(BaseModel):
 
 class ShiftClose(BaseModel):
     counted_cash: Decimal = Field(..., ge=0)
+    close_notes: Optional[str] = Field(None, max_length=500)
 
 
 class ShiftResponse(BaseModel):
@@ -25,7 +26,10 @@ class ShiftResponse(BaseModel):
     cash_difference: Optional[Decimal]
     total_sales: Decimal
     total_mpesa: Decimal
+    total_refunds: Decimal
     status: ShiftStatus
+    closed_by: Optional[UUID]
+    close_notes: Optional[str]
     
     class Config:
         from_attributes = True

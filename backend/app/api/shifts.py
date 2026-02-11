@@ -67,7 +67,10 @@ async def open_shift(
         user_id=current_user.id,
         opening_cash=shift_data.opening_cash,
         expected_cash=shift_data.opening_cash,
-        status=ShiftStatus.OPEN
+        status=ShiftStatus.OPEN,
+        total_sales=Decimal(0),
+        total_mpesa=Decimal(0),
+        total_refunds=Decimal(0)
     )
     
     db.add(shift)
@@ -98,6 +101,8 @@ async def close_shift(
     from datetime import datetime
     
     shift.closed_at = datetime.utcnow()
+    shift.closed_by = current_user.id
+    shift.close_notes = shift_data.close_notes
     shift.counted_cash = shift_data.counted_cash
     shift.cash_difference = shift_data.counted_cash - (shift.expected_cash or Decimal(0))
     shift.status = ShiftStatus.CLOSED

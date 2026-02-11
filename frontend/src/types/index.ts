@@ -103,6 +103,23 @@ export interface DashboardStats {
     active_sessions: number;
     low_stock_items: number;
     available_computers: number;
+    recent_transactions: {
+        id: string;
+        transaction_number: number;
+        amount: number;
+        time: string;
+        status: string;
+    }[];
+    top_services: {
+        service_name: string;
+        quantity_sold: number;
+        revenue: number;
+    }[];
+    payment_breakdown: {
+        method: string;
+        amount: number;
+        count: number;
+    }[];
 }
 
 export interface LoginRequest {

@@ -205,7 +205,51 @@ async def void_transaction(
     
     transaction.status = TransactionStatus.VOIDED
     
-    # Reverse stock movements
+    # Update shift totals
+    shift = db.query(Shift).filter(Shift.id == transaction.shift_id).first()
+    if shift:
+        shift.total_sales -= transaction.final_amount
+        if transaction.payment_method == PaymentMethod.CASH:
+            # We assume expected_cash tracks what SHOULD be there. Voiding means it shouldn't be there.
+            # If it was already collected, this reduces the expectation.
+            shift.expected_cash -= transaction.final_amount
+        elif transaction.payment_method == PaymentMethod.MPESA:
+            shift.total_mpesa -= transaction.final_amount
+
+    db.commit()
+    
+    return {"message": "Transaction voided successfully"}
+
+
+@router.post("/{transaction_id}/refund")
+async def refund_transaction(
+    transaction_id: UUID,
+    refund_data: TransactionVoid, # Reusing the reason schema
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Permission.REFUND_TRANSACTION))
+):
+    """Refund a transaction"""
+    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found"
+        )
+    
+    if transaction.status != TransactionStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only completed transactions can be refunded"
+        )
+    
+    transaction.status = TransactionStatus.REFUNDED
+    
+    # Reverse stock movements (Item returned to stock?)
+    # Valid question: do refunds always imply stock return? 
+    # For services like "Printing", if usage was wasted (bad print), maybe not?
+    # But usually "Refund" implies "Return". Let's assume stock is returned for now 
+    # or leave it as a business logic choice. 
+    # User requirement: "Reverse stock movements (put items back)"
     for item in transaction.items:
         if item.service_id:
             service = db.query(Service).filter(Service.id == item.service_id).first()
@@ -222,14 +266,50 @@ async def void_transaction(
                         movement_type=MovementType.ADJUSTMENT,
                         quantity=item.quantity,
                         reference_id=str(transaction.id),
-                        notes=f"Void transaction #{transaction.transaction_number}: {void_data.reason}",
+                        notes=f"Refund transaction #{transaction.transaction_number}: {refund_data.reason}",
                         created_by=current_user.id
                     )
                     db.add(movement)
     
+    # Update shift totals
+    # Refunds increase "total_refunds" and reduce "net sales" logic?
+    # User req: "Track... total_refunds, and net sales per shift"
+    # Current Shift model has `total_refunds`.
+    # It does NOT have `net_sales` column, but `total_sales` usually implies Gross or Net?
+    # Let's check Shift model again... `total_sales`, `total_mpesa`, `total_refunds`.
+    # If I refund, I should probably increase `total_refunds`.
+    # Should I decrease `total_sales`? 
+    # Usually Total Sales = Gross. Net Sales = Gross - Refunds.
+    # If the report calculates Net as Total - Refunds, then I should NOT decrease Total.
+    # CONSTANT: `total_sales`
+    # Let's assume `total_sales` is GROSS.
+    # So I only ADD to `total_refunds`.
+    # AND I need to reduce the Cash Expectation if it was a Cash refund?
+    # "Refund" implies giving money BACK.
+    # If I give cash back, `expected_cash` should DECREASE (or `counted_cash` will be lower).
+    # If `expected_cash` is "Money that should be in drawer", and I took money out to refund, 
+    # then `expected_cash` should decrease.
+    
+    shift = db.query(Shift).filter(Shift.id == transaction.shift_id).first()
+    if shift:
+        shift.total_refunds += transaction.final_amount
+        
+        # If refunded via CASH, reduce expected cash
+        # If refunded via MPESA (reversal), reduce total_mpesa? 
+        # Or just track it. 
+        # Let's assume Refunds are done in CASH usually for POS, or Reversal.
+        # If original was CASH, we refund CASH.
+        if transaction.payment_method == PaymentMethod.CASH:
+             shift.expected_cash -= transaction.final_amount
+        elif transaction.payment_method == PaymentMethod.MPESA:
+             # If we refund M-Pesa, we likely do a reversal or send money.
+             # This might not affect the "Cash in Drawer", but affects "M-Pesa balance".
+             # For now, let's decrement total_mpesa to reflect the 'Net M-Pesa In'.
+             shift.total_mpesa -= transaction.final_amount
+
     db.commit()
     
-    return {"message": "Transaction voided successfully"}
+    return {"message": "Transaction refunded successfully"}
 
 
 @router.get("/{transaction_id}/receipt")

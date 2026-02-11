@@ -29,6 +29,9 @@ async def list_services(
     if category:
         query = query.filter(Service.category == category)
     
+    # Default sorting: Category (nulls last), then Name
+    query = query.order_by(Service.category.asc().nullslast(), Service.name.asc())
+    
     services = query.offset(skip).limit(limit).all()
     return services
 

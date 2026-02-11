@@ -10,8 +10,9 @@ from ..schemas.report import (
     ServicePerformance,
     AttendantPerformance,
     ProfitReport,
-    DashboardStats
+    DashboardStats,
 )
+from ..schemas.transaction import TransactionResponse
 from ..models.transaction import Transaction, TransactionItem, TransactionStatus, PaymentMethod
 from ..models.session import Session as SessionModel, SessionStatus
 from ..models.computer import Computer, ComputerStatus
@@ -182,10 +183,141 @@ async def get_dashboard_stats(
         Computer.status == ComputerStatus.AVAILABLE
     ).scalar() or 0
     
+    # Recent transactions (last 10)
+    recent_txs = db.query(Transaction).order_by(
+        Transaction.created_at.desc()
+    ).limit(10).all()
+    
+    recent_transactions = [
+        {
+            "id": str(t.id),
+            "transaction_number": t.transaction_number,
+            "amount": t.final_amount,
+            "time": t.created_at.strftime("%H:%M"),
+            "status": t.status.value
+        }
+        for t in recent_txs
+    ]
+    
+    # Top 5 Services (Today)
+    top_services_query = db.query(
+        Service.name,
+        func.sum(TransactionItem.quantity).label("quantity_sold"),
+        func.sum(TransactionItem.total_price).label("revenue")
+    ).join(
+        TransactionItem, Service.id == TransactionItem.service_id
+    ).join(
+        Transaction, TransactionItem.transaction_id == Transaction.id
+    ).filter(
+        func.date(Transaction.created_at) == today,
+        Transaction.status == TransactionStatus.COMPLETED
+    ).group_by(Service.name).order_by(func.sum(TransactionItem.total_price).desc()).limit(5).all()
+    
+    top_services = [
+        ServicePerformance(
+            service_name=r.name,
+            quantity_sold=r.quantity_sold or Decimal(0),
+            revenue=r.revenue or Decimal(0)
+        )
+        for r in top_services_query
+    ]
+    
+    # Payment Breakdown (Today)
+    payment_stats = db.query(
+        Transaction.payment_method,
+        func.sum(Transaction.final_amount).label("total"),
+        func.count(Transaction.id).label("count")
+    ).filter(
+        func.date(Transaction.created_at) == today,
+        Transaction.status == TransactionStatus.COMPLETED
+    ).group_by(Transaction.payment_method).all()
+    
+    payment_breakdown = [
+        {
+            "method": r.payment_method.value,
+            "amount": r.total or Decimal(0),
+            "count": r.count or 0
+        }
+        for r in payment_stats
+    ]
+    
     return DashboardStats(
         today_sales=today_sales,
         today_transactions=today_transactions,
         active_sessions=active_sessions,
         low_stock_items=low_stock_items,
-        available_computers=available_computers
+        available_computers=available_computers,
+        recent_transactions=recent_transactions,
+        top_services=top_services,
+        payment_breakdown=payment_breakdown
+    )
+
+
+@router.get("/transactions", response_model=List[TransactionResponse])
+async def get_report_transactions(
+    start_date: date,
+    end_date: date,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Permission.VIEW_REPORTS))
+):
+    """Get transactions for a specific period"""
+    transactions = db.query(Transaction).filter(
+        Transaction.created_at >= datetime.combine(start_date, datetime.min.time()),
+        Transaction.created_at <= datetime.combine(end_date, datetime.max.time())
+    ).order_by(Transaction.created_at.desc()).offset(skip).limit(limit).all()
+    
+    return transactions
+
+
+@router.get("/export")
+async def export_transactions_csv(
+    start_date: date,
+    end_date: date,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Permission.VIEW_REPORTS))
+):
+    """Export transactions to CSV"""
+    import csv
+    from io import StringIO
+    from fastapi.responses import StreamingResponse
+
+    transactions = db.query(Transaction).filter(
+        Transaction.created_at >= datetime.combine(start_date, datetime.min.time()),
+        Transaction.created_at <= datetime.combine(end_date, datetime.max.time())
+    ).order_by(Transaction.created_at.desc()).all()
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow([
+        "Transaction #", "Date", "Time", "Attendant", "Total Amount", 
+        "Discount", "Final Amount", "Payment Method", "M-Pesa Code", "Status"
+    ])
+    
+    # Data
+    for t in transactions:
+        writer.writerow([
+            t.transaction_number,
+            t.created_at.strftime("%Y-%m-%d"),
+            t.created_at.strftime("%H:%M"),
+            t.user.full_name if t.user else "Unknown",
+            f"{t.total_amount:.2f}",
+            f"{t.discount_amount:.2f}",
+            f"{t.final_amount:.2f}",
+            t.payment_method.value.upper(),
+            t.mpesa_code or "",
+            t.status.value.upper()
+        ])
+        
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=transactions_{start_date}_{end_date}.csv"
+        }
     )

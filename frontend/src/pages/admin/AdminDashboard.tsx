@@ -100,6 +100,92 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 )}
 
+                {/* Analytics Grid */}
+                {stats && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        {/* Recent Activity */}
+                        <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
+                                <Link to="/admin/reports" className="text-sm text-primary-600 hover:text-primary-700">View All</Link>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="pb-3">Time</th>
+                                            <th className="pb-3">Transaction</th>
+                                            <th className="pb-3">Status</th>
+                                            <th className="pb-3 text-right">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {stats.recent_transactions?.map((tx) => (
+                                            <tr key={tx.id}>
+                                                <td className="py-3 text-sm text-gray-600">{tx.time}</td>
+                                                <td className="py-3 text-sm font-medium text-gray-900">#{tx.transaction_number}</td>
+                                                <td className="py-3">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                                                        ${tx.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                                            tx.status === 'voided' ? 'bg-red-100 text-red-800' :
+                                                                'bg-orange-100 text-orange-800'}`}>
+                                                        {tx.status}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 text-sm font-bold text-gray-900 text-right">
+                                                    KES {tx.amount.toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {(!stats.recent_transactions || stats.recent_transactions.length === 0) && (
+                                            <tr>
+                                                <td colSpan={4} className="py-4 text-center text-gray-500">No recent activity</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Side Widgets */}
+                        <div className="space-y-6">
+                            {/* Payment Breakdown */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Payments Today</h3>
+                                <div className="space-y-4">
+                                    {stats.payment_breakdown?.map((item) => (
+                                        <div key={item.method} className="flex justify-between items-center">
+                                            <div>
+                                                <p className="font-medium text-gray-900 capitalize">{item.method}</p>
+                                                <p className="text-xs text-gray-500">{item.count} transactions</p>
+                                            </div>
+                                            <p className="font-bold text-gray-900">KES {item.amount.toFixed(2)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Top Services */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Top Services</h3>
+                                <div className="space-y-4">
+                                    {stats.top_services?.map((service, idx) => (
+                                        <div key={idx} className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-gray-700 truncate w-32" title={service.service_name}>
+                                                {service.service_name}
+                                            </span>
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-gray-900">KES {service.revenue.toFixed(0)}</p>
+                                                <p className="text-xs text-gray-500">{service.quantity_sold} sold</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Quick Links */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <Link
@@ -113,6 +199,21 @@ const AdminDashboard: React.FC = () => {
                             <div>
                                 <h3 className="text-xl font-semibold text-gray-900">Services</h3>
                                 <p className="text-gray-600">Manage services & pricing</p>
+                            </div>
+                        </div>
+                    </Link>
+
+                    <Link
+                        to="/admin/inventory"
+                        className="card hover:shadow-lg transition-shadow cursor-pointer"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="bg-orange-100 p-4 rounded-lg">
+                                <Package className="w-8 h-8 text-orange-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-semibold text-gray-900">Inventory</h3>
+                                <p className="text-gray-600">Manage stock & items</p>
                             </div>
                         </div>
                     </Link>

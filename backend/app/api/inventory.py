@@ -36,6 +36,17 @@ async def list_inventory_items(
     return items
 
 
+@router.get("/low-stock", response_model=List[InventoryItemResponse])
+async def list_low_stock_items(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List items with low stock (convenience endpoint)"""
+    return db.query(InventoryItem).filter(
+        InventoryItem.current_stock <= InventoryItem.min_stock_level
+    ).all()
+
+
 @router.post("/", response_model=InventoryItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_inventory_item(
     item_data: InventoryItemCreate,

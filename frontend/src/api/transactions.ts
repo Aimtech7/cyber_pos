@@ -32,4 +32,8 @@ export const transactionsApi = {
     void: async (id: string, reason: string): Promise<void> => {
         await apiClient.post(`/transactions/${id}/void`, { reason });
     },
+
+    refund: async (id: string, reason: string): Promise<void> => {
+        await apiClient.post(`/transactions/${id}/refund`, { reason });
+    },
 };

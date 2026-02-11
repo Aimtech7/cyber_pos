@@ -39,9 +39,28 @@ class ProfitReport(BaseModel):
     profit_margin: Decimal
 
 
+class PaymentBreakdown(BaseModel):
+    method: str
+    amount: Decimal
+    count: int
+
+
+class DashboardTransaction(BaseModel):
+    id: str  # changed from UUID to str to avoid serialization issues if mixed
+    transaction_number: int
+    amount: Decimal
+    time: str
+    status: str
+
+
 class DashboardStats(BaseModel):
     today_sales: Decimal
     today_transactions: int
     active_sessions: int
     low_stock_items: int
     available_computers: int
+    
+    # New fields
+    recent_transactions: List[DashboardTransaction] = []
+    top_services: List[ServicePerformance] = []
+    payment_breakdown: List[PaymentBreakdown] = []
