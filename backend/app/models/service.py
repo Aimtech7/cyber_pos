@@ -8,10 +8,9 @@ from ..database import Base
 
 
 class PricingMode(str, enum.Enum):
-    PER_PAGE = "per_page"
-    PER_MINUTE = "per_minute"
-    PER_JOB = "per_job"
-    BUNDLE = "bundle"
+    PER_MINUTE = "PER_MINUTE"
+    PER_PAGE = "PER_PAGE"
+    PER_JOB = "PER_JOB"
 
 
 class Service(Base):
@@ -19,6 +18,7 @@ class Service(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, index=True)
+    category = Column(String(50), nullable=True)
     pricing_mode = Column(Enum(PricingMode), nullable=False)
     base_price = Column(Numeric(10, 2), nullable=False)
     description = Column(String(500))

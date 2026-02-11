@@ -3,7 +3,7 @@ export interface User {
     username: string;
     email: string;
     full_name: string;
-    role: 'admin' | 'manager' | 'attendant';
+    role: 'ADMIN' | 'MANAGER' | 'ATTENDANT';
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -12,7 +12,8 @@ export interface User {
 export interface Service {
     id: string;
     name: string;
-    pricing_mode: 'per_page' | 'per_minute' | 'per_job' | 'bundle';
+    category?: string;
+    pricing_mode: 'PER_PAGE' | 'PER_MINUTE' | 'PER_JOB';
     base_price: number;
     description?: string;
     is_active: boolean;

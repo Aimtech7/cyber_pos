@@ -12,7 +12,7 @@ const Users: React.FC = () => {
         email: '',
         full_name: '',
         password: '',
-        role: 'attendant' as 'admin' | 'manager' | 'attendant',
+        role: 'ATTENDANT' as 'ADMIN' | 'MANAGER' | 'ATTENDANT',
     });
 
     useEffect(() => {
@@ -33,7 +33,7 @@ const Users: React.FC = () => {
         try {
             await apiClient.post('/users/', formData);
             setShowForm(false);
-            setFormData({ username: '', email: '', full_name: '', password: '', role: 'attendant' });
+            setFormData({ username: '', email: '', full_name: '', password: '', role: 'ATTENDANT' });
             loadUsers();
         } catch (error: any) {
             console.error('Error creating user:', error);
@@ -139,9 +139,9 @@ const Users: React.FC = () => {
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
                                         className="input"
                                     >
-                                        <option value="attendant">Attendant</option>
-                                        <option value="manager">Manager</option>
-                                        <option value="admin">Admin</option>
+                                        <option value="ATTENDANT">Attendant</option>
+                                        <option value="MANAGER">Manager</option>
+                                        <option value="ADMIN">Admin</option>
                                     </select>
                                 </div>
                             </div>
@@ -152,7 +152,7 @@ const Users: React.FC = () => {
                                     type="button"
                                     onClick={() => {
                                         setShowForm(false);
-                                        setFormData({ username: '', email: '', full_name: '', password: '', role: 'attendant' });
+                                        setFormData({ username: '', email: '', full_name: '', password: '', role: 'ATTENDANT' });
                                     }}
                                     className="btn btn-secondary"
                                 >

@@ -73,7 +73,7 @@ function AppRoutes() {
             <Route
                 path="/admin"
                 element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                    <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
                         <AdminDashboard />
                     </ProtectedRoute>
                 }
@@ -81,7 +81,7 @@ function AppRoutes() {
             <Route
                 path="/admin/services"
                 element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                    <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
                         <Services />
                     </ProtectedRoute>
                 }
@@ -89,7 +89,7 @@ function AppRoutes() {
             <Route
                 path="/admin/users"
                 element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
                         <Users />
                     </ProtectedRoute>
                 }
@@ -97,7 +97,7 @@ function AppRoutes() {
             <Route
                 path="/admin/reports"
                 element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                    <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
                         <Reports />
                     </ProtectedRoute>
                 }
@@ -108,7 +108,7 @@ function AppRoutes() {
                 path="/"
                 element={
                     user ? (
-                        user.role === 'attendant' ? (
+                        user.role === 'ATTENDANT' ? (
                             <Navigate to="/pos" replace />
                         ) : (
                             <Navigate to="/admin" replace />

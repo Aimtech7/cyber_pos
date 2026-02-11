@@ -8,6 +8,7 @@ from ..models.service import PricingMode
 
 class ServiceBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
+    category: Optional[str] = Field(None, max_length=50)
     pricing_mode: PricingMode
     base_price: Decimal = Field(..., ge=0)
     description: Optional[str] = Field(None, max_length=500)
@@ -21,6 +22,7 @@ class ServiceCreate(ServiceBase):
 
 class ServiceUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
+    category: Optional[str] = Field(None, max_length=50)
     pricing_mode: Optional[PricingMode] = None
     base_price: Optional[Decimal] = Field(None, ge=0)
     description: Optional[str] = Field(None, max_length=500)

@@ -17,6 +17,7 @@ async def list_services(
     skip: int = 0,
     limit: int = 100,
     active_only: bool = True,
+    category: str = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -24,6 +25,9 @@ async def list_services(
     query = db.query(Service)
     if active_only:
         query = query.filter(Service.is_active == True)
+    
+    if category:
+        query = query.filter(Service.category == category)
     
     services = query.offset(skip).limit(limit).all()
     return services

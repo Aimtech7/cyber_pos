@@ -97,7 +97,13 @@ async def stop_session(
         Service.pricing_mode == PricingMode.PER_MINUTE
     ).first()
     
-    rate_per_minute = browsing_service.base_price if browsing_service else Decimal("1.00")
+    if not browsing_service:
+        # Fallback query for any PER_MINUTE service if "browsing" not found
+        browsing_service = db.query(Service).filter(
+            Service.pricing_mode == PricingMode.PER_MINUTE
+        ).first()
+
+    rate_per_minute = browsing_service.base_price if browsing_service else Decimal("2.00")
     
     # Calculate charge
     end_time = datetime.utcnow()

@@ -13,35 +13,55 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>({
-        id: 1,
-        email: 'admin@example.com',
-        full_name: 'Admin User',
-        role: 'admin',
-        is_active: true
-    });
-    const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Auto-login logic (already set in state)
-        setIsLoading(false);
+        const initAuth = async () => {
+            try {
+                const user = await authApi.getCurrentUser();
+                setUser(user);
+            } catch (error) {
+                // Not logged in or invalid token
+                setUser(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initAuth();
     }, []);
 
     const login = async (username: string, password: string) => {
-        // No-op login
-        setUser({
-            id: 1,
-            email: 'admin@example.com',
-            full_name: 'Admin User',
-            role: 'admin',
-            is_active: true
-        });
+        setIsLoading(true);
+        try {
+            // 1. Login to retrieve token
+            const response = await authApi.login({ username, password });
+
+            // 2. Save tokens
+            localStorage.setItem('access_token', response.access_token);
+            localStorage.setItem('refresh_token', response.refresh_token);
+
+            // 3. Fetch user profile
+            const user = await authApi.getCurrentUser();
+            setUser(user);
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const logout = async () => {
-        setUser(null);
-        // Optional: Reset to auto-login if you want strict "always on" or just let them logout to a blank screen
-        // For now, allow logout but they can just refresh to "login" again
+        try {
+            await authApi.logout();
+        } catch (error) {
+            console.error('Logout failed', error);
+        } finally {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            setUser(null);
+        }
     };
 
     return (

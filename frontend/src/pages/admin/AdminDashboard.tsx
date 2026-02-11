@@ -117,7 +117,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     </Link>
 
-                    {user?.role === 'admin' && (
+                    {user?.role === 'ADMIN' && (
                         <Link
                             to="/admin/users"
                             className="card hover:shadow-lg transition-shadow cursor-pointer"
