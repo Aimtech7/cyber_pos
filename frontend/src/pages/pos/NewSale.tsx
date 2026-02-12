@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { servicesApi } from '../../api/services';
 import { transactionsApi } from '../../api/transactions';
 import { Service, TransactionItem } from '../../types';
-import { ArrowLeft, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ShoppingCart, Smartphone } from 'lucide-react';
+import MpesaPaymentModal from '../../components/MpesaPaymentModal';
 
 const NewSale: React.FC = () => {
     const navigate = useNavigate();
@@ -12,6 +13,8 @@ const NewSale: React.FC = () => {
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
     const [mpesaCode, setMpesaCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showMpesaModal, setShowMpesaModal] = useState(false);
+    const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
 
     useEffect(() => {
         loadServices();
@@ -59,19 +62,36 @@ const NewSale: React.FC = () => {
 
         setIsLoading(true);
         try {
-            await transactionsApi.create({
+            const transaction = await transactionsApi.create({
                 items,
                 payment_method: paymentMethod,
                 mpesa_code: paymentMethod === 'mpesa' ? mpesaCode : undefined,
             });
-            alert('Transaction completed successfully!');
-            navigate('/pos');
+
+            // If M-Pesa and no code provided, show STK Push modal
+            if (paymentMethod === 'mpesa' && !mpesaCode) {
+                setPendingTransactionId(transaction.id);
+                setShowMpesaModal(true);
+            } else {
+                alert('Transaction completed successfully!');
+                navigate('/pos');
+            }
         } catch (error: any) {
             console.error('Error creating transaction:', error);
             alert(error.response?.data?.detail || 'Failed to create transaction');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleMpesaSuccess = (receiptNumber: string) => {
+        alert(`Payment confirmed! Receipt: ${receiptNumber}`);
+        navigate('/pos');
+    };
+
+    const handleMpesaFailure = (reason: string) => {
+        alert(`Payment failed: ${reason}`);
+        setShowMpesaModal(false);
     };
 
     return (
@@ -193,25 +213,30 @@ const NewSale: React.FC = () => {
                                     {paymentMethod === 'mpesa' && (
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                M-Pesa Transaction Code
+                                                M-Pesa Transaction Code (Optional)
                                             </label>
                                             <input
                                                 type="text"
                                                 value={mpesaCode}
                                                 onChange={(e) => setMpesaCode(e.target.value)}
                                                 className="input"
-                                                placeholder="Enter M-Pesa code"
-                                                required
+                                                placeholder="Enter M-Pesa code or leave empty for STK Push"
                                             />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Leave empty to send payment request to customer's phone
+                                            </p>
                                         </div>
                                     )}
 
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full btn btn-primary py-3 text-lg disabled:opacity-50"
+                                        className="w-full btn btn-primary py-3 text-lg disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
-                                        {isLoading ? 'Processing...' : 'Complete Sale'}
+                                        {paymentMethod === 'mpesa' && !mpesaCode && (
+                                            <Smartphone className="w-5 h-5" />
+                                        )}
+                                        {isLoading ? 'Processing...' : paymentMethod === 'mpesa' && !mpesaCode ? 'Complete Sale & Send M-Pesa Request' : 'Complete Sale'}
                                     </button>
                                 </form>
                             </>
@@ -219,6 +244,18 @@ const NewSale: React.FC = () => {
                     </div>
                 </div>
             </main>
+
+            {/* M-Pesa Payment Modal */}
+            {showMpesaModal && pendingTransactionId && (
+                <MpesaPaymentModal
+                    isOpen={showMpesaModal}
+                    onClose={() => setShowMpesaModal(false)}
+                    transactionId={pendingTransactionId}
+                    amount={total}
+                    onSuccess={handleMpesaSuccess}
+                    onFailure={handleMpesaFailure}
+                />
+            )}
         </div>
     );
 };

@@ -97,6 +97,7 @@ async def create_transaction(
     total_amount = Decimal(0)
     items_data = []
     
+        # Validate price against service if service_id is provided
     for item in transaction_data.items:
         # Validate price against service if service_id is provided
         if item.service_id:
@@ -107,17 +108,29 @@ async def create_transaction(
                     detail=f"Service not found for item: {item.description}"
                 )
             
-            # Enforce base price validation (optional, but good for security)
-            # For now, we trust the frontend but ensure the calculation is correct
-            calculated_price = item.quantity * item.unit_price
+            if not service.is_active:
+                 raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Service is inactive: {item.description}"
+                )
+
+            # FORCE server-side price (Security: Financial Integrity)
+            # We ignore item.unit_price from client and use service.base_price
+            unit_price = service.base_price
             
-            # Future improvement: Enforce unit_price matches service.base_price 
-            # unless a discount/override is explicitly allowed.
+        else:
+            # For non-service items (if allowed), we might have to trust client or logic
+            # But for now, let's assume all main items are services
+            # Or if it's a "Custom Item", maybe we allow it for Admin?
+            # Safe default: use client price but maybe flag it?
+            # For this MVP hardening, let's use client price but ensure it's logged
+            unit_price = item.unit_price
         
-        total_price = item.quantity * item.unit_price
+        total_price = item.quantity * unit_price
         total_amount += total_price
         items_data.append({
-            **item.model_dump(),
+            **item.model_dump(exclude={'unit_price', 'total_price'}), # Exclude to avoid conflict/override
+            "unit_price": unit_price,
             "total_price": total_price
         })
     
@@ -176,6 +189,17 @@ async def create_transaction(
     elif transaction_data.payment_method == PaymentMethod.MPESA:
         open_shift.total_mpesa += final_amount
     
+    if transaction_data.discount_amount > 0:
+        # Log Audit
+        from ..models.audit import AuditLog
+        audit_log = AuditLog(
+            user_id=current_user.id,
+            action="APPLY_DISCOUNT",
+            details=f"Applied discount of {transaction_data.discount_amount} to Transaction #{transaction_number}",
+            metadata_json={"transaction_id": str(transaction.id), "amount": str(transaction_data.discount_amount)}
+        )
+        db.add(audit_log)
+    
     db.commit()
     db.refresh(transaction)
     
@@ -215,6 +239,16 @@ async def void_transaction(
             shift.expected_cash -= transaction.final_amount
         elif transaction.payment_method == PaymentMethod.MPESA:
             shift.total_mpesa -= transaction.final_amount
+
+    # Log Audit
+    from ..models.audit import AuditLog
+    
+    audit_log = AuditLog(
+        user_id=current_user.id,
+        action="VOID_TRANSACTION",
+        details=f"Voided Transaction #{transaction.transaction_number}. Amount: {transaction.final_amount}. Reason: {void_data.reason}"
+    )
+    db.add(audit_log)
 
     db.commit()
     
@@ -306,6 +340,17 @@ async def refund_transaction(
              # This might not affect the "Cash in Drawer", but affects "M-Pesa balance".
              # For now, let's decrement total_mpesa to reflect the 'Net M-Pesa In'.
              shift.total_mpesa -= transaction.final_amount
+
+    # Log Audit
+    from ..models.audit import AuditLog
+    
+    # Audit for refund
+    audit_log = AuditLog(
+        user_id=current_user.id,
+        action="REFUND_TRANSACTION",
+        details=f"Refunded Transaction #{transaction.transaction_number}. Amount: {transaction.final_amount}. Reason: {refund_data.reason}"
+    )
+    db.add(audit_log)
 
     db.commit()
     

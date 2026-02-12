@@ -7,11 +7,14 @@ import POSDashboard from './pages/pos/POSDashboard';
 import NewSale from './pages/pos/NewSale';
 import Sessions from './pages/pos/Sessions';
 import Transactions from './pages/pos/Transactions';
+import PrintJobQueue from './pages/pos/PrintJobQueue';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Services from './pages/admin/Services';
 import Inventory from './pages/admin/Inventory';
 import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
+import MpesaInbox from './pages/admin/MpesaInbox';
+import MpesaReconciliation from './pages/admin/MpesaReconciliation';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -79,6 +82,14 @@ function AppRoutes() {
                     </ProtectedRoute>
                 }
             />
+            <Route
+                path="/pos/print-queue"
+                element={
+                    <ProtectedRoute>
+                        <PrintJobQueue />
+                    </ProtectedRoute>
+                }
+            />
 
             {/* Admin Routes */}
             <Route
@@ -118,6 +129,22 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
                         <Reports />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/mpesa-inbox"
+                element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+                        <MpesaInbox />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/mpesa-reconciliation"
+                element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+                        <MpesaReconciliation />
                     </ProtectedRoute>
                 }
             />

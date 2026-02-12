@@ -7,6 +7,9 @@ from .shift import Shift
 from .inventory import InventoryItem, StockMovement
 from .expense import Expense
 from .audit import AuditLog
+from .print_job import PrintJob
+from .customer import Customer
+from .invoice import Invoice, InvoiceItem, InvoicePayment
 
 __all__ = [
     "User",
@@ -20,4 +23,9 @@ __all__ = [
     "StockMovement",
     "Expense",
     "AuditLog",
+    "PrintJob",
+    "Customer",
+    "Invoice",
+    "InvoiceItem",
+    "InvoicePayment",
 ]

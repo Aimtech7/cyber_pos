@@ -10,6 +10,7 @@ from ..database import Base
 class PaymentMethod(str, enum.Enum):
     CASH = "cash"
     MPESA = "mpesa"
+    ACCOUNT = "account"  # Customer account payment
 
 
 class TransactionStatus(str, enum.Enum):
@@ -31,13 +32,25 @@ class Transaction(Base):
     payment_method = Column(Enum(PaymentMethod), nullable=False)
     mpesa_code = Column(String(50), nullable=True)
     status = Column(Enum(TransactionStatus), nullable=False, default=TransactionStatus.COMPLETED)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Customer account payment
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True, index=True)
+    invoice_id = Column(UUID(as_uuid=True), ForeignKey("invoices.id"), nullable=True, index=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
+    # Future Hooks (Single Tenant Default)
+    tenant_id = Column(String(50), nullable=True, index=True)
+    branch_id = Column(String(50), nullable=True, default="Main")
+    
     # Relationships
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[created_by])
     shift = relationship("Shift", back_populates="transactions")
-    items = relationship("TransactionItem", back_populates="transaction", cascade="all, delete-orphan")
+    customer = relationship("Customer", back_populates="transactions")
+    invoice = relationship("Invoice", foreign_keys=[invoice_id])
+    transaction_items = relationship("TransactionItem", back_populates="transaction", cascade="all, delete-orphan")
+    payment_intents = relationship("PaymentIntent", back_populates="transaction", cascade="all, delete-orphan")
     sessions = relationship("Session", back_populates="transaction")
 
 
@@ -45,7 +58,7 @@ class TransactionItem(Base):
     __tablename__ = "transaction_items"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    transaction_id = Column(UUID(as_uuid=True), ForeignKey("transactions.id"), nullable=False)
+    transaction_id = Column(UUID(as_uuid=True), ForeignKey("transactions.id"), nullable=False, index=True)
     service_id = Column(UUID(as_uuid=True), ForeignKey("services.id"), nullable=True)
     session_id = Column(UUID(as_uuid=True), ForeignKey("sessions.id"), nullable=True)
     description = Column(String(500), nullable=False)

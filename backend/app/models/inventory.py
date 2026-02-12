@@ -25,6 +25,9 @@ class InventoryItem(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
+    # Future Hooks
+    tenant_id = Column(String(50), nullable=True, index=True)
+    
     # Relationships
     movements = relationship("StockMovement", back_populates="item")
     services = relationship("Service", back_populates="stock_item")
@@ -40,7 +43,10 @@ class StockMovement(Base):
     reference_id = Column(String(255), nullable=True)
     notes = Column(String(500))
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    
+    # Future Hooks
+    tenant_id = Column(String(50), nullable=True, index=True)
     
     # Relationships
     item = relationship("InventoryItem", back_populates="movements")

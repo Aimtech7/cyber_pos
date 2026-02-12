@@ -1,5 +1,5 @@
 from app.database import engine, Base
-from app.models import user, computer, session, transaction, inventory, service, report
+from app.models import user, computer, session, transaction, inventory, service, report, audit, payment_intent, mpesa_payment
 import logging
 
 # Configure logging
