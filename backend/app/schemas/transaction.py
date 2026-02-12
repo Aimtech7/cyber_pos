@@ -27,6 +27,7 @@ class TransactionCreate(BaseModel):
     items: List[TransactionItemCreate]
     payment_method: PaymentMethod
     mpesa_code: Optional[str] = Field(None, max_length=50)
+    customer_id: Optional[UUID] = None  # Required if payment_method is ACCOUNT
     discount_amount: Decimal = Field(default=Decimal(0), ge=0)
 
 
@@ -40,6 +41,8 @@ class TransactionResponse(BaseModel):
     final_amount: Decimal
     payment_method: PaymentMethod
     mpesa_code: Optional[str]
+    customer_id: Optional[UUID]
+    invoice_id: Optional[UUID]
     status: TransactionStatus
     created_at: datetime
     updated_at: datetime

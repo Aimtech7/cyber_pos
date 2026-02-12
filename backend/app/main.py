@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
-from .api import auth, users, services, computers, sessions, transactions, shifts, inventory, expenses, reports, mpesa, print_jobs
+from .api import auth, users, services, computers, sessions, transactions, shifts, inventory, expenses, reports, mpesa, print_jobs, customers, invoices
 from .database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -36,6 +36,8 @@ app.include_router(expenses.router)
 app.include_router(reports.router)
 app.include_router(mpesa.router)
 app.include_router(print_jobs.router)
+app.include_router(customers.router)
+app.include_router(invoices.router)
 
 
 @app.get("/")

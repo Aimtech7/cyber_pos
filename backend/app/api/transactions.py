@@ -11,10 +11,13 @@ from ..models.shift import Shift, ShiftStatus
 from ..models.user import User
 from ..models.inventory import InventoryItem, StockMovement, MovementType
 from ..models.service import Service
+from ..models.customer import Customer
+from ..models.invoice import Invoice, InvoiceItem, InvoiceStatus
 from ..core.permissions import Permission
 from ..api.deps import get_current_user, require_permission
 from ..utils.receipt import generate_receipt_pdf
 from io import BytesIO
+from datetime import date, timedelta
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -89,6 +92,28 @@ async def create_transaction(
                 detail="You don't have permission to apply discounts"
             )
     
+    # Validate customer for ACCOUNT payment
+    customer = None
+    if transaction_data.payment_method == PaymentMethod.ACCOUNT:
+        if not transaction_data.customer_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Customer ID is required for account payments"
+            )
+        
+        customer = db.query(Customer).filter(Customer.id == transaction_data.customer_id).first()
+        if not customer:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Customer not found"
+            )
+        
+        if not customer.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Customer account is inactive"
+            )
+    
     # Get next transaction number
     max_number = db.query(func.max(Transaction.transaction_number)).scalar() or 0
     transaction_number = max_number + 1
@@ -136,6 +161,16 @@ async def create_transaction(
     
     final_amount = total_amount - transaction_data.discount_amount
     
+    # Check credit limit for ACCOUNT payment
+    if transaction_data.payment_method == PaymentMethod.ACCOUNT:
+        new_balance = customer.current_balance + final_amount
+        if new_balance > customer.credit_limit:
+            available = customer.credit_limit - customer.current_balance
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Credit limit exceeded. Available credit: KES {available}"
+            )
+    
     # Create transaction
     transaction = Transaction(
         transaction_number=transaction_number,
@@ -146,6 +181,7 @@ async def create_transaction(
         final_amount=final_amount,
         payment_method=transaction_data.payment_method,
         mpesa_code=transaction_data.mpesa_code,
+        customer_id=transaction_data.customer_id if transaction_data.payment_method == PaymentMethod.ACCOUNT else None,
         status=TransactionStatus.COMPLETED
     )
     db.add(transaction)
@@ -181,6 +217,42 @@ async def create_transaction(
                         created_by=current_user.id
                     )
                     db.add(movement)
+    
+    # Create invoice for ACCOUNT payment
+    if transaction_data.payment_method == PaymentMethod.ACCOUNT:
+        # Create invoice
+        due_date = date.today() + timedelta(days=30)  # 30 days default
+        invoice = Invoice(
+            customer_id=customer.id,
+            status=InvoiceStatus.ISSUED,
+            issue_date=date.today(),
+            due_date=due_date,
+            subtotal=total_amount,
+            tax_amount=Decimal("0"),
+            total_amount=final_amount,
+            paid_amount=Decimal("0"),
+            notes=f"Auto-generated from transaction #{transaction_number}",
+            created_by=current_user.id
+        )
+        db.add(invoice)
+        db.flush()
+        
+        # Add invoice item
+        invoice_item = InvoiceItem(
+            invoice_id=invoice.id,
+            transaction_id=transaction.id,
+            description=f"Transaction #{transaction_number}",
+            quantity=Decimal("1"),
+            unit_price=final_amount,
+            total_price=final_amount
+        )
+        db.add(invoice_item)
+        
+        # Link invoice to transaction
+        transaction.invoice_id = invoice.id
+        
+        # Update customer balance
+        customer.current_balance += final_amount
     
     # Update shift totals
     open_shift.total_sales += final_amount
