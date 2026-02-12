@@ -4,8 +4,11 @@ import { servicesApi } from '../../api/services';
 import { transactionsApi } from '../../api/transactions';
 import { customersApi, Customer } from '../../api/customers';
 import { Service, TransactionItem } from '../../types';
-import { ArrowLeft, Plus, Trash2, ShoppingCart, Smartphone, User } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ShoppingCart, Smartphone, User, WifiOff } from 'lucide-react';
 import MpesaPaymentModal from '../../components/MpesaPaymentModal';
+import { useOffline } from '../../context/OfflineContext';
+import { offlineStorage } from '../../services/offlineStorage';
+import { v4 as uuidv4 } from 'uuid';
 
 const NewSale: React.FC = () => {
     const navigate = useNavigate();
@@ -19,6 +22,7 @@ const NewSale: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showMpesaModal, setShowMpesaModal] = useState(false);
     const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
+    const { isOnline, refreshPendingCount } = useOffline();
 
     useEffect(() => {
         loadServices();
@@ -98,11 +102,42 @@ const NewSale: React.FC = () => {
 
         setIsLoading(true);
         try {
+            // Generate client_generated_id for idempotency
+            const clientGeneratedId = uuidv4();
+
+            // If OFFLINE, queue the transaction
+            if (!isOnline) {
+                const offlineReceiptNumber = offlineStorage.generateOfflineReceiptNumber();
+
+                await offlineStorage.addTransaction({
+                    id: uuidv4(),
+                    client_generated_id: clientGeneratedId,
+                    offline_receipt_number: offlineReceiptNumber,
+                    transaction_data: {
+                        items,
+                        payment_method: paymentMethod,
+                        mpesa_code: paymentMethod === 'mpesa' ? mpesaCode : undefined,
+                        customer_id: paymentMethod === 'account' ? selectedCustomerId : undefined,
+                    },
+                    created_at: new Date().toISOString(),
+                    status: 'PENDING',
+                    retry_count: 0,
+                });
+
+                await refreshPendingCount();
+
+                alert(`Transaction queued for sync!\nTemporary Receipt: ${offlineReceiptNumber}\n\nThis will be synced when connection is restored.`);
+                navigate('/pos');
+                return;
+            }
+
+            // ONLINE - create transaction normally
             const transaction = await transactionsApi.create({
                 items,
                 payment_method: paymentMethod,
                 mpesa_code: paymentMethod === 'mpesa' ? mpesaCode : undefined,
                 customer_id: paymentMethod === 'account' ? selectedCustomerId : undefined,
+                client_generated_id: clientGeneratedId, // Include for idempotency
             });
 
             // If M-Pesa and no code provided, show STK Push modal
@@ -228,8 +263,8 @@ const NewSale: React.FC = () => {
                                                 type="button"
                                                 onClick={() => setPaymentMethod('cash')}
                                                 className={`p-3 rounded-lg border-2 transition-colors ${paymentMethod === 'cash'
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                        : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                     }`}
                                             >
                                                 <div className="text-center">
@@ -241,8 +276,8 @@ const NewSale: React.FC = () => {
                                                 type="button"
                                                 onClick={() => setPaymentMethod('mpesa')}
                                                 className={`p-3 rounded-lg border-2 transition-colors ${paymentMethod === 'mpesa'
-                                                        ? 'border-green-500 bg-green-50 text-green-700'
-                                                        : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                     }`}
                                             >
                                                 <div className="text-center">
@@ -254,8 +289,8 @@ const NewSale: React.FC = () => {
                                                 type="button"
                                                 onClick={() => setPaymentMethod('account')}
                                                 className={`p-3 rounded-lg border-2 transition-colors ${paymentMethod === 'account'
-                                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                                        : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                     }`}
                                             >
                                                 <div className="text-center">
@@ -323,8 +358,8 @@ const NewSale: React.FC = () => {
                                                         <div className="col-span-2">
                                                             <span className="text-gray-600">Available Credit:</span>
                                                             <div className={`font-bold text-lg ${selectedCustomer.available_credit >= total
-                                                                    ? 'text-green-600'
-                                                                    : 'text-red-600'
+                                                                ? 'text-green-600'
+                                                                : 'text-red-600'
                                                                 }`}>
                                                                 KES {selectedCustomer.available_credit.toLocaleString()}
                                                             </div>

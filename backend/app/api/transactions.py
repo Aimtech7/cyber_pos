@@ -70,7 +70,35 @@ async def create_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new transaction"""
+    """Create a new transaction with idempotency support"""
+    
+    # IDEMPOTENCY CHECK: If client_generated_id is provided, check for existing transaction
+    if transaction_data.client_generated_id:
+        existing_transaction = db.query(Transaction).filter(
+            Transaction.client_generated_id == transaction_data.client_generated_id
+        ).first()
+        
+        if existing_transaction:
+            # Transaction already exists - return it (idempotency)
+            from ..models.audit import AuditLog
+            db.add(AuditLog(
+                user_id=current_user.id,
+                action="DUPLICATE_TRANSACTION_PREVENTED",
+                details={
+                    "client_generated_id": str(transaction_data.client_generated_id),
+                    "existing_transaction_id": str(existing_transaction.id),
+                    "message": "Duplicate transaction prevented by idempotency check"
+                }
+            ))
+            db.commit()
+            
+            # Return existing transaction with 200 OK (not 201 Created)
+            return Response(
+                content=existing_transaction.json(),
+                status_code=status.HTTP_200_OK,
+                media_type="application/json"
+            )
+    
     # Check if user has an open shift
     open_shift = db.query(Shift).filter(
         Shift.user_id == current_user.id,
@@ -172,6 +200,7 @@ async def create_transaction(
             )
     
     # Create transaction
+    from datetime import datetime
     transaction = Transaction(
         transaction_number=transaction_number,
         created_by=current_user.id,
@@ -182,7 +211,11 @@ async def create_transaction(
         payment_method=transaction_data.payment_method,
         mpesa_code=transaction_data.mpesa_code,
         customer_id=transaction_data.customer_id if transaction_data.payment_method == PaymentMethod.ACCOUNT else None,
-        status=TransactionStatus.COMPLETED
+        status=TransactionStatus.COMPLETED,
+        # Offline mode fields
+        client_generated_id=transaction_data.client_generated_id,
+        offline_receipt_number=transaction_data.offline_receipt_number,
+        synced_at=datetime.utcnow() if transaction_data.client_generated_id else None  # Set synced_at if this was offline
     )
     db.add(transaction)
     db.flush()

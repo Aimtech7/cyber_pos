@@ -18,6 +18,9 @@ export const transactionsApi = {
         mpesa_code?: string;
         customer_id?: string;
         discount_amount?: number;
+        // Offline mode support
+        client_generated_id?: string;
+        offline_receipt_number?: string;
     }): Promise<Transaction> => {
         const response = await apiClient.post<Transaction>('/transactions/', data);
         return response.data;

@@ -37,6 +37,11 @@ class Transaction(Base):
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True, index=True)
     invoice_id = Column(UUID(as_uuid=True), ForeignKey("invoices.id"), nullable=True, index=True)
     
+    # Offline mode support (for idempotency and sync)
+    client_generated_id = Column(UUID(as_uuid=True), unique=True, nullable=True, index=True)  # Client UUID for idempotency
+    offline_receipt_number = Column(String(50), nullable=True, index=True)  # Temporary offline receipt (OFF-YYYYMMDD-xxxx)
+    synced_at = Column(DateTime(timezone=True), nullable=True)  # When offline transaction was synced
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     

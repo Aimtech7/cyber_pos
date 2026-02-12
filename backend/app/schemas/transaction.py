@@ -29,6 +29,10 @@ class TransactionCreate(BaseModel):
     mpesa_code: Optional[str] = Field(None, max_length=50)
     customer_id: Optional[UUID] = None  # Required if payment_method is ACCOUNT
     discount_amount: Decimal = Field(default=Decimal(0), ge=0)
+    
+    # Offline mode support
+    client_generated_id: Optional[UUID] = None  # For idempotency
+    offline_receipt_number: Optional[str] = Field(None, max_length=50)  # Temporary offline receipt
 
 
 class TransactionResponse(BaseModel):
@@ -47,6 +51,11 @@ class TransactionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     items: List[TransactionItemResponse]
+    
+    # Offline mode fields
+    client_generated_id: Optional[UUID]
+    offline_receipt_number: Optional[str]
+    synced_at: Optional[datetime]
     
     class Config:
         from_attributes = True
