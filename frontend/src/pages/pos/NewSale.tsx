@@ -4,7 +4,7 @@ import { servicesApi } from '../../api/services';
 import { transactionsApi } from '../../api/transactions';
 import { customersApi, Customer } from '../../api/customers';
 import { Service, TransactionItem } from '../../types';
-import { ArrowLeft, Plus, Trash2, ShoppingCart, Smartphone, User, WifiOff } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ShoppingCart, Smartphone, User } from 'lucide-react';
 import MpesaPaymentModal from '../../components/MpesaPaymentModal';
 import { useOffline } from '../../context/OfflineContext';
 import { offlineStorage } from '../../services/offlineStorage';

@@ -18,6 +18,9 @@ import MpesaReconciliation from './pages/admin/MpesaReconciliation';
 import { Customers } from './pages/admin/Customers';
 import { Invoices } from './pages/admin/Invoices';
 import { Alerts } from './pages/admin/Alerts';
+import { OfflineQueue } from './pages/pos/OfflineQueue';
+import { OfflineProvider } from './context/OfflineContext';
+import { OfflineBanner } from './components/OfflineBanner';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -191,6 +194,14 @@ function AppRoutes() {
                     )
                 }
             />
+            <Route
+                path="/pos/offline-queue"
+                element={
+                    <ProtectedRoute>
+                        <OfflineQueue />
+                    </ProtectedRoute>
+                }
+            />
         </Routes>
     );
 }
@@ -199,9 +210,12 @@ function App() {
     return (
         <AuthProvider>
             <ShiftProvider>
-                <BrowserRouter>
-                    <AppRoutes />
-                </BrowserRouter>
+                <OfflineProvider>
+                    <BrowserRouter>
+                        <OfflineBanner />
+                        <AppRoutes />
+                    </BrowserRouter>
+                </OfflineProvider>
             </ShiftProvider>
         </AuthProvider>
     );

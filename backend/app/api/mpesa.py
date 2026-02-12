@@ -31,6 +31,7 @@ from ..schemas.mpesa import (
 from ..services.daraja import daraja_service
 from ..services.mpesa_matcher import mpesa_matcher
 from ..core.audit import log_audit
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -141,12 +142,41 @@ async def mpesa_callback(
     """
     M-Pesa callback endpoint (PUBLIC - No authentication required)
     
-    Receives payment confirmations from Safaricom
+    SECURITY:
+    - IP allowlist validation (if configured)
+    - Replay attack prevention (same checkout_request_id processed once)
+    - Amount validation (matches expected amount)
+    - Provider reference validation (checkout_request_id exists)
     """
     try:
+        # SECURITY CHECK 1: IP Allowlist Validation
+        client_ip = request.client.host if request.client else "unknown"
+        allowed_ips = settings.get_mpesa_allowed_ips()
+        
+        if allowed_ips and client_ip not in allowed_ips:
+            logger.warning(
+                f"M-Pesa callback rejected from unauthorized IP: {client_ip}. "
+                f"Allowed IPs: {allowed_ips}"
+            )
+            # Log security event
+            log_audit(
+                db=db,
+                user_id=None,
+                action="MPESA_CALLBACK_REJECTED",
+                details={
+                    "reason": "unauthorized_ip",
+                    "client_ip": client_ip,
+                    "allowed_ips": allowed_ips
+                }
+            )
+            return {
+                "ResultCode": 1,
+                "ResultDesc": "Unauthorized"
+            }
+        
         # Get callback data
         callback_data = await request.json()
-        logger.info(f"Received M-Pesa callback: {callback_data}")
+        logger.info(f"Received M-Pesa callback from {client_ip}: {callback_data}")
         
         # Extract callback data
         extracted = daraja_service.extract_callback_data(callback_data)
@@ -158,12 +188,99 @@ async def mpesa_callback(
         result_code = extracted["result_code"]
         checkout_request_id = extracted["checkout_request_id"]
         
+        # SECURITY CHECK 2: Validate checkout_request_id exists
+        if not checkout_request_id:
+            logger.error("Callback missing checkout_request_id")
+            return {"ResultCode": 1, "ResultDesc": "Missing checkout_request_id"}
+        
+        # SECURITY CHECK 3: Replay Attack Prevention
+        # Check if this checkout_request_id has already been processed
+        existing_intent = db.query(PaymentIntent).filter(
+            PaymentIntent.mpesa_checkout_request_id == checkout_request_id
+        ).first()
+        
+        if not existing_intent:
+            logger.warning(
+                f"Callback for unknown checkout_request_id: {checkout_request_id}. "
+                "This could be a replay attack or orphaned callback."
+            )
+            # Log security event
+            log_audit(
+                db=db,
+                user_id=None,
+                action="MPESA_CALLBACK_UNKNOWN_REQUEST",
+                details={
+                    "checkout_request_id": checkout_request_id,
+                    "callback_data": callback_data
+                }
+            )
+            return {
+                "ResultCode": 1,
+                "ResultDesc": "Unknown checkout request"
+            }
+        
+        # Check if already processed (replay attack)
+        if existing_intent.status in [PaymentIntentStatus.CONFIRMED, PaymentIntentStatus.FAILED]:
+            logger.warning(
+                f"Replay attack detected: checkout_request_id {checkout_request_id} "
+                f"already processed with status {existing_intent.status}"
+            )
+            # Log security event
+            log_audit(
+                db=db,
+                user_id=None,
+                action="MPESA_CALLBACK_REPLAY_DETECTED",
+                details={
+                    "checkout_request_id": checkout_request_id,
+                    "existing_status": existing_intent.status.value,
+                    "callback_data": callback_data
+                }
+            )
+            # Still acknowledge to prevent retries
+            return {
+                "ResultCode": 0,
+                "ResultDesc": "Already processed"
+            }
+        
         # Handle successful payment
         if result_code == 0:
             mpesa_receipt = extracted["mpesa_receipt_number"]
             amount = Decimal(str(extracted["amount"]))
             phone_number = str(extracted["phone_number"])
             transaction_date_str = str(extracted["transaction_date"])
+            
+            # SECURITY CHECK 4: Amount Validation
+            # Verify amount matches expected amount (within tolerance for rounding)
+            expected_amount = existing_intent.amount
+            amount_diff = abs(amount - expected_amount)
+            
+            if amount_diff > Decimal("0.01"):  # 1 cent tolerance
+                logger.error(
+                    f"Amount mismatch for checkout_request_id {checkout_request_id}: "
+                    f"Expected {expected_amount}, Got {amount}"
+                )
+                # Log security event
+                log_audit(
+                    db=db,
+                    user_id=None,
+                    action="MPESA_CALLBACK_AMOUNT_MISMATCH",
+                    details={
+                        "checkout_request_id": checkout_request_id,
+                        "expected_amount": str(expected_amount),
+                        "received_amount": str(amount),
+                        "difference": str(amount_diff)
+                    }
+                )
+                # Mark intent as failed
+                existing_intent.status = PaymentIntentStatus.FAILED
+                existing_intent.failure_reason = f"Amount mismatch: expected {expected_amount}, got {amount}"
+                existing_intent.callback_data = callback_data
+                db.commit()
+                
+                return {
+                    "ResultCode": 1,
+                    "ResultDesc": "Amount mismatch"
+                }
             
             # Parse M-Pesa date format (YYYYMMDDHHmmss)
             try:
@@ -217,6 +334,20 @@ async def mpesa_callback(
         
     except Exception as e:
         logger.error(f"Error processing M-Pesa callback: {e}")
+        # Log error for monitoring
+        try:
+            log_audit(
+                db=db,
+                user_id=None,
+                action="MPESA_CALLBACK_ERROR",
+                details={
+                    "error": str(e),
+                    "client_ip": request.client.host if request.client else "unknown"
+                }
+            )
+        except:
+            pass
+        
         return {
             "ResultCode": 1,
             "ResultDesc": f"Error: {str(e)}"
