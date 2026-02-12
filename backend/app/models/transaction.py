@@ -42,6 +42,9 @@ class Transaction(Base):
     offline_receipt_number = Column(String(50), nullable=True, index=True)  # Temporary offline receipt (OFF-YYYYMMDD-xxxx)
     synced_at = Column(DateTime(timezone=True), nullable=True)  # When offline transaction was synced
     
+    # Security: Receipt tamper detection
+    receipt_hash = Column(String(64), nullable=True, index=True)  # SHA-256 hash for tamper detection
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     

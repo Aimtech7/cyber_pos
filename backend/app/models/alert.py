@@ -52,7 +52,7 @@ class Alert(Base):
     
     # Related entities (stored as JSON for flexibility)
     related_entity = Column(JSON, nullable=True)  # {type: 'user', id: '...', name: '...'}
-    metadata = Column(JSON, nullable=True)  # Additional data (thresholds, counts, etc.)
+    alert_metadata = Column(JSON, nullable=True)  # Additional data (thresholds, counts, etc.)
     
     # Assignment and resolution
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
