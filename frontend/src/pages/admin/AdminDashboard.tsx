@@ -3,15 +3,21 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { reportsApi } from '../../api/reports';
 import { DashboardStats } from '../../types';
-import { DollarSign, ShoppingCart, Monitor, Package, LogOut, Settings, Users, FileText } from 'lucide-react';
+import { DollarSign, ShoppingCart, Monitor, Package, LogOut, Settings, Users, FileText, AlertTriangle } from 'lucide-react';
+import { alertsApi, AlertStats } from '../../api/alerts';
 
 const AdminDashboard: React.FC = () => {
     const { user, logout } = useAuth();
     const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [alertStats, setAlertStats] = useState<AlertStats | null>(null);
 
     useEffect(() => {
         loadStats();
-        const interval = setInterval(loadStats, 30000); // Refresh every 30 seconds
+        loadAlertStats();
+        const interval = setInterval(() => {
+            loadStats();
+            loadAlertStats();
+        }, 30000); // Refresh every 30 seconds
         return () => clearInterval(interval);
     }, []);
 
@@ -21,6 +27,15 @@ const AdminDashboard: React.FC = () => {
             setStats(data);
         } catch (error) {
             console.error('Error loading stats:', error);
+        }
+    };
+
+    const loadAlertStats = async () => {
+        try {
+            const data = await alertsApi.getStats();
+            setAlertStats(data);
+        } catch (error) {
+            console.error('Error loading alert stats:', error);
         }
     };
 
@@ -149,6 +164,42 @@ const AdminDashboard: React.FC = () => {
 
                         {/* Side Widgets */}
                         <div className="space-y-6">
+                            {/* Security Alerts Widget */}
+                            {alertStats && (
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                                            Security Alerts
+                                        </h3>
+                                        <Link to="/admin/alerts" className="text-sm text-primary-600 hover:text-primary-700">View All</Link>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center p-3 bg-red-50 rounded border border-red-200">
+                                            <div>
+                                                <p className="text-sm font-semibold text-red-900">Critical</p>
+                                                <p className="text-xs text-red-700">Open alerts</p>
+                                            </div>
+                                            <span className="text-2xl font-bold text-red-600">{alertStats.critical_open}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center p-3 bg-orange-50 rounded border border-orange-200">
+                                            <div>
+                                                <p className="text-sm font-semibold text-orange-900">High</p>
+                                                <p className="text-xs text-orange-700">Open alerts</p>
+                                            </div>
+                                            <span className="text-2xl font-bold text-orange-600">{alertStats.high_open}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200">
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900">Total Open</p>
+                                                <p className="text-xs text-gray-700">All severities</p>
+                                            </div>
+                                            <span className="text-2xl font-bold text-gray-600">{alertStats.total_open}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Payment Breakdown */}
                             <div className="bg-white rounded-lg shadow p-6">
                                 <h3 className="text-lg font-bold text-gray-900 mb-4">Payments Today</h3>

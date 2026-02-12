@@ -17,6 +17,7 @@ import MpesaInbox from './pages/admin/MpesaInbox';
 import MpesaReconciliation from './pages/admin/MpesaReconciliation';
 import { Customers } from './pages/admin/Customers';
 import { Invoices } from './pages/admin/Invoices';
+import { Alerts } from './pages/admin/Alerts';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -163,6 +164,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
                         <Invoices />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/alerts"
+                element={
+                    <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+                        <Alerts />
                     </ProtectedRoute>
                 }
             />

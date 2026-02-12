@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
-from .api import auth, users, services, computers, sessions, transactions, shifts, inventory, expenses, reports, mpesa, print_jobs, customers, invoices
+from .api import auth, users, services, computers, sessions, transactions, shifts, inventory, expenses, reports, mpesa, print_jobs, customers, invoices, alerts
 from .database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -38,6 +38,7 @@ app.include_router(mpesa.router)
 app.include_router(print_jobs.router)
 app.include_router(customers.router)
 app.include_router(invoices.router)
+app.include_router(alerts.router)
 
 
 @app.get("/")
@@ -50,7 +51,20 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    from .services.scheduler import start_scheduler
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    from .services.scheduler import stop_scheduler
+    stop_scheduler()
+
+
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
     """Health check endpoint"""
