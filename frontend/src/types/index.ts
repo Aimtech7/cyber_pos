@@ -58,8 +58,10 @@ export interface Transaction {
     total_amount: number;
     discount_amount: number;
     final_amount: number;
-    payment_method: 'cash' | 'mpesa';
+    payment_method: 'cash' | 'mpesa' | 'account';
     mpesa_code?: string;
+    customer_id?: string;
+    invoice_id?: string;
     status: 'completed' | 'voided' | 'refunded';
     created_at: string;
     items: TransactionItem[];

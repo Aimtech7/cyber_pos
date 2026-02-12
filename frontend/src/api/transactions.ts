@@ -14,8 +14,9 @@ export const transactionsApi = {
 
     create: async (data: {
         items: TransactionItem[];
-        payment_method: 'cash' | 'mpesa';
+        payment_method: 'cash' | 'mpesa' | 'account';
         mpesa_code?: string;
+        customer_id?: string;
         discount_amount?: number;
     }): Promise<Transaction> => {
         const response = await apiClient.post<Transaction>('/transactions/', data);

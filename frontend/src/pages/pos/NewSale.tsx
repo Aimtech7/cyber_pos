@@ -2,22 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { servicesApi } from '../../api/services';
 import { transactionsApi } from '../../api/transactions';
+import { customersApi, Customer } from '../../api/customers';
 import { Service, TransactionItem } from '../../types';
-import { ArrowLeft, Plus, Trash2, ShoppingCart, Smartphone } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ShoppingCart, Smartphone, User } from 'lucide-react';
 import MpesaPaymentModal from '../../components/MpesaPaymentModal';
 
 const NewSale: React.FC = () => {
     const navigate = useNavigate();
     const [services, setServices] = useState<Service[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
     const [items, setItems] = useState<TransactionItem[]>([]);
-    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa' | 'account'>('cash');
     const [mpesaCode, setMpesaCode] = useState('');
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [showMpesaModal, setShowMpesaModal] = useState(false);
     const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
 
     useEffect(() => {
         loadServices();
+        loadCustomers();
     }, []);
 
     const loadServices = async () => {
@@ -26,6 +31,15 @@ const NewSale: React.FC = () => {
             setServices(data);
         } catch (error) {
             console.error('Error loading services:', error);
+        }
+    };
+
+    const loadCustomers = async () => {
+        try {
+            const response = await customersApi.list({ page_size: 100, active_only: true });
+            setCustomers(response.items);
+        } catch (error) {
+            console.error('Error loading customers:', error);
         }
     };
 
@@ -53,11 +67,33 @@ const NewSale: React.FC = () => {
 
     const total = items.reduce((sum, item) => sum + (item.total_price || 0), 0);
 
+    // Update selected customer when customer ID changes
+    useEffect(() => {
+        if (selectedCustomerId) {
+            const customer = customers.find(c => c.id === selectedCustomerId);
+            setSelectedCustomer(customer || null);
+        } else {
+            setSelectedCustomer(null);
+        }
+    }, [selectedCustomerId, customers]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (items.length === 0) {
             alert('Please add at least one item');
             return;
+        }
+
+        // Validate ACCOUNT payment
+        if (paymentMethod === 'account') {
+            if (!selectedCustomerId) {
+                alert('Please select a customer for account payment');
+                return;
+            }
+            if (selectedCustomer && selectedCustomer.available_credit < total) {
+                alert(`Insufficient credit. Available: KES ${selectedCustomer.available_credit.toLocaleString()}`);
+                return;
+            }
         }
 
         setIsLoading(true);
@@ -66,6 +102,7 @@ const NewSale: React.FC = () => {
                 items,
                 payment_method: paymentMethod,
                 mpesa_code: paymentMethod === 'mpesa' ? mpesaCode : undefined,
+                customer_id: paymentMethod === 'account' ? selectedCustomerId : undefined,
             });
 
             // If M-Pesa and no code provided, show STK Push modal
@@ -186,48 +223,122 @@ const NewSale: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Payment Method
                                         </label>
-                                        <div className="flex gap-4">
-                                            <label className="flex items-center">
-                                                <input
-                                                    type="radio"
-                                                    value="cash"
-                                                    checked={paymentMethod === 'cash'}
-                                                    onChange={(e) => setPaymentMethod(e.target.value as 'cash')}
-                                                    className="mr-2"
-                                                />
-                                                Cash
-                                            </label>
-                                            <label className="flex items-center">
-                                                <input
-                                                    type="radio"
-                                                    value="mpesa"
-                                                    checked={paymentMethod === 'mpesa'}
-                                                    onChange={(e) => setPaymentMethod(e.target.value as 'mpesa')}
-                                                    className="mr-2"
-                                                />
-                                                M-Pesa
-                                            </label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPaymentMethod('cash')}
+                                                className={`p-3 rounded-lg border-2 transition-colors ${paymentMethod === 'cash'
+                                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                        : 'border-gray-300 hover:border-gray-400'
+                                                    }`}
+                                            >
+                                                <div className="text-center">
+                                                    <div className="text-2xl mb-1">💵</div>
+                                                    <div className="text-sm font-medium">Cash</div>
+                                                </div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPaymentMethod('mpesa')}
+                                                className={`p-3 rounded-lg border-2 transition-colors ${paymentMethod === 'mpesa'
+                                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                                        : 'border-gray-300 hover:border-gray-400'
+                                                    }`}
+                                            >
+                                                <div className="text-center">
+                                                    <Smartphone className="w-6 h-6 mx-auto mb-1" />
+                                                    <div className="text-sm font-medium">M-Pesa</div>
+                                                </div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPaymentMethod('account')}
+                                                className={`p-3 rounded-lg border-2 transition-colors ${paymentMethod === 'account'
+                                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                                        : 'border-gray-300 hover:border-gray-400'
+                                                    }`}
+                                            >
+                                                <div className="text-center">
+                                                    <User className="w-6 h-6 mx-auto mb-1" />
+                                                    <div className="text-sm font-medium">Account</div>
+                                                </div>
+                                            </button>
                                         </div>
                                     </div>
 
                                     {paymentMethod === 'mpesa' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                M-Pesa Transaction Code (Optional)
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                M-Pesa Code (Optional)
                                             </label>
                                             <input
                                                 type="text"
                                                 value={mpesaCode}
                                                 onChange={(e) => setMpesaCode(e.target.value)}
-                                                className="input"
-                                                placeholder="Enter M-Pesa code or leave empty for STK Push"
+                                                placeholder="Enter M-Pesa code or leave blank for STK Push"
+                                                className="input w-full"
                                             />
                                             <p className="text-xs text-gray-500 mt-1">
-                                                Leave empty to send payment request to customer's phone
+                                                Leave blank to send STK Push to customer
                                             </p>
                                         </div>
                                     )}
 
+                                    {paymentMethod === 'account' && (
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Select Customer *
+                                                </label>
+                                                <select
+                                                    value={selectedCustomerId}
+                                                    onChange={(e) => setSelectedCustomerId(e.target.value)}
+                                                    className="input w-full"
+                                                    required
+                                                >
+                                                    <option value="">-- Choose Customer --</option>
+                                                    {customers.map((customer) => (
+                                                        <option key={customer.id} value={customer.id}>
+                                                            {customer.name} ({customer.customer_number})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {selectedCustomer && (
+                                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                                        <div>
+                                                            <span className="text-gray-600">Credit Limit:</span>
+                                                            <div className="font-semibold">
+                                                                KES {selectedCustomer.credit_limit.toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-gray-600">Current Balance:</span>
+                                                            <div className="font-semibold">
+                                                                KES {selectedCustomer.current_balance.toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-span-2">
+                                                            <span className="text-gray-600">Available Credit:</span>
+                                                            <div className={`font-bold text-lg ${selectedCustomer.available_credit >= total
+                                                                    ? 'text-green-600'
+                                                                    : 'text-red-600'
+                                                                }`}>
+                                                                KES {selectedCustomer.available_credit.toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {selectedCustomer.available_credit < total && (
+                                                        <div className="mt-2 text-xs text-red-600 font-medium">
+                                                            ⚠️ Insufficient credit for this transaction
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     <button
                                         type="submit"
                                         disabled={isLoading}

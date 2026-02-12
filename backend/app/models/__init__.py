@@ -8,24 +8,36 @@ from .inventory import InventoryItem, StockMovement
 from .expense import Expense
 from .audit import AuditLog
 from .print_job import PrintJob
-from .customer import Customer
-from .invoice import Invoice, InvoiceItem, InvoicePayment
+from app.models.customer import Customer, CustomerType
+from app.models.invoice import Invoice, InvoiceItem, InvoicePayment, InvoiceStatus
+from app.models.alert import Alert, AlertType, AlertSeverity, AlertStatus
 
 __all__ = [
     "User",
+    "UserRole",
     "Service",
     "Computer",
     "Session",
     "Transaction",
     "TransactionItem",
+    "PaymentMethod",
+    "TransactionStatus",
     "Shift",
     "InventoryItem",
-    "StockMovement",
     "Expense",
     "AuditLog",
+    "PaymentIntent",
+    "MpesaTransaction",
     "PrintJob",
+    "PrintJobStatus",
     "Customer",
+    "CustomerType",
     "Invoice",
     "InvoiceItem",
     "InvoicePayment",
+    "InvoiceStatus",
+    "Alert",
+    "AlertType",
+    "AlertSeverity",
+    "AlertStatus",
 ]
