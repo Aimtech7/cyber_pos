@@ -211,14 +211,14 @@ function AppRoutes() {
 function App() {
     return (
         <AuthProvider>
-            <ShiftProvider>
-                {/* <OfflineProvider> */}
-                <BrowserRouter>
-                    {/* <OfflineBanner /> */}
-                    <AppRoutes />
-                </BrowserRouter>
-                {/* </OfflineProvider> */}
-            </ShiftProvider>
+            {/* <ShiftProvider> */}
+            {/* <OfflineProvider> */}
+            <BrowserRouter>
+                {/* <OfflineBanner /> */}
+                <AppRoutes />
+            </BrowserRouter>
+            {/* </OfflineProvider> */}
+            {/* </ShiftProvider> */}
         </AuthProvider>
     );
 }
