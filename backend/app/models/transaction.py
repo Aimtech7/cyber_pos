@@ -57,7 +57,7 @@ class Transaction(Base):
     shift = relationship("Shift", back_populates="transactions")
     customer = relationship("Customer", back_populates="transactions")
     invoice = relationship("Invoice", foreign_keys=[invoice_id])
-    transaction_items = relationship("TransactionItem", back_populates="transaction", cascade="all, delete-orphan")
+    items = relationship("TransactionItem", back_populates="transaction", cascade="all, delete-orphan")
     payment_intents = relationship("PaymentIntent", back_populates="transaction", cascade="all, delete-orphan")
     sessions = relationship("Session", back_populates="transaction")
 
