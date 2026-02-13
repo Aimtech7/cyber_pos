@@ -105,7 +105,7 @@ class Settings(BaseSettings):
         # In production, warn about wildcard CORS
         if app_env == "production" and v == "*":
             print(
-                "⚠️  WARNING: CORS_ORIGINS is set to '*' in production. "
+                "WARNING: CORS_ORIGINS is set to '*' in production. "
                 "Consider restricting to specific origins for security."
             )
         
@@ -183,7 +183,7 @@ def validate_production_config(settings: Settings):
     
     # Print warnings
     if warnings:
-        print("\n⚠️  Configuration Warnings:")
+        print("\nConfiguration Warnings:")
         for warning in warnings:
             print(f"  - {warning}")
     
@@ -191,11 +191,11 @@ def validate_production_config(settings: Settings):
     if errors:
         error_msg = "\n".join(f"  - {err}" for err in errors)
         raise RuntimeError(
-            f"\n❌ Production configuration validation failed:\n{error_msg}\n\n"
+            f"\nProduction configuration validation failed:\n{error_msg}\n\n"
             "Fix these issues before starting the application."
         )
     
-    print(f"✅ Configuration validated for {settings.APP_ENV} environment")
+    print(f"Configuration validated for {settings.APP_ENV} environment")
 
 
 settings = Settings()

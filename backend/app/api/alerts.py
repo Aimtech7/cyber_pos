@@ -8,7 +8,7 @@ from sqlalchemy import func, and_, or_
 from datetime import datetime
 
 from app.database import get_db
-from app.core.permissions import require_role
+from app.api.deps import require_role
 from app.models.user import User, UserRole
 from app.models.alert import Alert, AlertType, AlertSeverity, AlertStatus
 from app.schemas.alert import (

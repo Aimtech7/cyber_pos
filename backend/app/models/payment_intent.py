@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Numeric, DateTime, Enum as SQLEnum, ForeignKey, JSON, Boolean
+from sqlalchemy import Column, String, Numeric, DateTime, Enum as SQLEnum, ForeignKey, JSON, Boolean, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
@@ -39,7 +39,7 @@ class PaymentIntent(Base):
     failure_reason = Column(String(500), nullable=True)
     
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=lambda: datetime.utcnow(), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False, index=True)  # 90 seconds from creation
     confirmed_at = Column(DateTime(timezone=True), nullable=True)
     

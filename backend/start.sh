@@ -8,9 +8,9 @@ sleep 2
 
 echo "✅ Ready to connect to Supabase!"
 
-# Run migrations
-echo "🔄 Running database migrations..."
-alembic upgrade head
+# Migrations should be run manually or via init container
+# echo "🔄 Running database migrations..."
+# alembic upgrade head
 
 # Seed database (continue even if it fails - data might already exist)
 echo "🌱 Seeding database..."

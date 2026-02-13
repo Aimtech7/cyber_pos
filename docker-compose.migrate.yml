@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python migrate.py
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - APP_ENV=production
+    volumes:
+      - ./backend:/app
+    network_mode: host

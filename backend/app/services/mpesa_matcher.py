@@ -147,7 +147,7 @@ class MpesaMatcher:
         Find potential transaction matches for unmatched M-Pesa payment (Tier 2 & 3)
         
         Uses fuzzy matching:
-        - Amount within tolerance (±5 KES)
+        - Amount within tolerance (+/- 5 KES)
         - Time window (within 30 minutes)
         - M-Pesa payment method
         - Not already matched

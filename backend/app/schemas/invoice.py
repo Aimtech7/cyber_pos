@@ -129,7 +129,7 @@ class AgingReportResponse(BaseModel):
 
 
 class IssueInvoiceRequest(BaseModel):
-    """Issue invoice request (DRAFT → ISSUED)"""
+    """Issue invoice request (DRAFT -> ISSUED)"""
     pass  # Empty, action only
 
 

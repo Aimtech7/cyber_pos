@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, JSON, Boolean
+from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, JSON, Boolean, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -28,7 +28,7 @@ class MpesaPayment(Base):
     raw_callback_data = Column(JSON, nullable=True)  # Full callback payload for debugging
     
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=lambda: datetime.utcnow(), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     # Relationships
     matched_transaction = relationship("Transaction", foreign_keys=[matched_transaction_id])

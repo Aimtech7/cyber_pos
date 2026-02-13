@@ -177,29 +177,29 @@ const POSDashboard: React.FC = () => {
                             </div>
                         </Link>
                     </div>
-                </Link>
 
-                <Link
-                    to="/pos/transactions"
-                    className="card hover:shadow-lg transition-shadow cursor-pointer flex items-center gap-4 p-6"
-                >
-                    <div className="bg-purple-100 p-4 rounded-full">
-                        <History className="w-8 h-8 text-purple-600" />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-900">History</h3>
-                        <p className="text-gray-600">View past transactions & receipts</p>
-                    </div>
-                </Link>
-        </div>
-                </div >
+
+                    <Link
+                        to="/pos/transactions"
+                        className="card hover:shadow-lg transition-shadow cursor-pointer flex items-center gap-4 p-6"
+                    >
+                        <div className="bg-purple-100 p-4 rounded-full">
+                            <History className="w-8 h-8 text-purple-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900">History</h3>
+                            <p className="text-gray-600">View past transactions & receipts</p>
+                        </div>
+                    </Link>
+                </div>
+
             </main >
 
-    <ShiftModal
-        isOpen={showShiftModal}
-        onClose={() => setShowShiftModal(false)}
-        mode={modalMode}
-    />
+            <ShiftModal
+                isOpen={showShiftModal}
+                onClose={() => setShowShiftModal(false)}
+                mode={modalMode}
+            />
         </div >
     );
 };

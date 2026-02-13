@@ -68,7 +68,7 @@ async def startup_event():
     from .services.scheduler import start_scheduler
     start_scheduler()
     
-    print(f"\n🚀 CyberCafe POS started in {settings.APP_ENV} mode")
+    print(f"\nCyberCafe POS started in {settings.APP_ENV} mode")
     print(f"   Version: {settings.APP_VERSION}")
     print(f"   Debug: {settings.DEBUG}")
     print(f"   DEV_BYPASS_AUTH: {settings.DEV_BYPASS_AUTH}")
@@ -99,6 +99,28 @@ async def health_check(db: Session = Depends(get_db)):
         scheduler_status = "running" if scheduler and scheduler.running else "stopped"
     except:
         scheduler_status = "unknown"
+        
+    # Check migration status
+    try:
+        from alembic.runtime.migration import MigrationContext
+        from alembic.script import ScriptDirectory
+        from .config import settings as config_settings
+        
+        # Build path to alembic.ini relative to this file's location
+        import os
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        alembic_cfg_path = os.path.join(base_dir, "alembic.ini")
+        
+        script = ScriptDirectory(os.path.join(base_dir, "alembic"))
+        
+        with db.connection() as connection:
+            context = MigrationContext.configure(connection)
+            current_rev = context.get_current_revision()
+            head_rev = script.get_current_head()
+            
+            migration_status = "up_to_date" if current_rev == head_rev else f"pending ({current_rev} -> {head_rev})"
+    except Exception as e:
+        migration_status = f"unknown: {str(e)}"
     
     return {
         "status": "healthy" if db_status == "connected" else "degraded",
@@ -106,5 +128,6 @@ async def health_check(db: Session = Depends(get_db)):
         "environment": settings.APP_ENV,
         "database": db_status,
         "scheduler": scheduler_status,
+        "migrations": migration_status,
         "server_time": datetime.now().isoformat()
     }

@@ -31,6 +31,33 @@ async def create_audit_log(
     return audit_log
 
 
+def log_audit(
+    db: Session,
+    user_id: Any,
+    action: str,
+    entity_type: str,
+    entity_id: str,
+    old_value: Optional[Dict[str, Any]] = None,
+    new_value: Optional[Dict[str, Any]] = None,
+    ip_address: Optional[str] = None
+) -> AuditLog:
+    """
+    Synchronous audit log creation.
+    Does NOT commit the transaction (caller is responsible).
+    """
+    audit_log = AuditLog(
+        user_id=user_id,
+        action=action,
+        entity_type=entity_type,
+        entity_id=str(entity_id),
+        old_value=old_value,
+        new_value=new_value,
+        ip_address=ip_address
+    )
+    db.add(audit_log)
+    return audit_log
+
+
 def audit_action(action: str, entity_type: str):
     """Decorator for auditing actions"""
     def decorator(func):

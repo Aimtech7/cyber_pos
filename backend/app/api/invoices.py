@@ -367,7 +367,7 @@ async def issue_invoice(
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER]))
 ):
     """
-    Issue invoice (DRAFT → ISSUED)
+    Issue invoice (DRAFT -> ISSUED)
     """
     try:
         invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()

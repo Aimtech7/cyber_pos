@@ -9,7 +9,7 @@ from uuid import UUID
 class PaymentIntentCreate(BaseModel):
     """Request to initiate M-Pesa payment"""
     transaction_id: UUID
-    phone_number: str = Field(..., regex=r"^254\d{9}$", description="Phone number in format 254XXXXXXXXX")
+    phone_number: str = Field(..., pattern=r"^254\d{9}$", description="Phone number in format 254XXXXXXXXX")
     amount: Decimal = Field(..., gt=0, description="Amount in KES")
 
 class PaymentIntentResponse(BaseModel):
