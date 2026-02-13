@@ -1,12 +1,13 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-// import { ShiftProvider } from './context/ShiftContext';
+import { ShiftProvider } from './context/ShiftContext';
 import Login from './pages/Login';
-import './index.css';
-
-const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
-    children,
+import POSDashboard from './pages/pos/POSDashboard';
+import NewSale from './pages/pos/NewSale';
+import Sessions from './pages/pos/Sessions';
+import Transactions from './pages/pos/Transactions';
+import PrintJobQueue from './pages/pos/PrintJobQueue';
+children,
     allowedRoles,
 }) => {
     const { user, isLoading } = useAuth();
