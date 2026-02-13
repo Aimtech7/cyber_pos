@@ -1,10 +1,8 @@
 import React from 'react';
-import './index.css';
-
-// import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-// import { AuthProvider, useAuth } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 // import { ShiftProvider } from './context/ShiftContext';
-// import Login from './pages/Login';
+import Login from './pages/Login';
 // import POSDashboard from './pages/pos/POSDashboard';
 // import NewSale from './pages/pos/NewSale';
 // import Sessions from './pages/pos/Sessions';
@@ -23,39 +21,6 @@ import './index.css';
 // import { OfflineQueue } from './pages/pos/OfflineQueue';
 // import { OfflineProvider } from './context/OfflineContext';
 // import { OfflineBanner } from './components/OfflineBanner';
-
-// const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
-//     children,
-//     allowedRoles,
-// }) => {
-//     const { user, isLoading } = useAuth();
-
-//     if (isLoading) {
-//         return (
-//             <div className="flex items-center justify-center min-h-screen">
-//                 <div className="text-xl">Loading...</div>
-//             </div>
-//         );
-//     }
-
-//     if (!user) {
-//         return <Navigate to="/login" replace />;
-//     }
-
-//     if (allowedRoles && !allowedRoles.includes(user.role)) {
-//         return <Navigate to="/" replace />;
-//     }
-
-//     return <>{children}</>;
-// };
-
-// function AppRoutes() {
-//     const { user } = useAuth();
-
-//     return (
-//         <Routes>
-//             <Route path="/login" element={<Login />} />
-
 //             {/* POS Routes */}
 //             <Route
 //                 path="/pos"
