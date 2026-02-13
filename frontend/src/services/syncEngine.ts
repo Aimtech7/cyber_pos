@@ -27,7 +27,9 @@ class SyncEngineService {
     private networkUnsubscribe: (() => void) | null = null;
 
     constructor() {
-        this.init();
+        this.init().catch(err => {
+            console.error('Failed to initialize SyncEngine:', err);
+        });
     }
 
     /**
