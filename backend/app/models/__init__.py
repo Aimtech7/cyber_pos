@@ -11,6 +11,8 @@ from .print_job import PrintJob, PrintJobStatus
 from app.models.customer import Customer, CustomerType
 from app.models.invoice import Invoice, InvoiceItem, InvoicePayment, InvoiceStatus
 from app.models.alert import Alert, AlertType, AlertSeverity, AlertStatus
+from app.models.payment_intent import PaymentIntent, PaymentIntentStatus
+from app.models.mpesa_payment import MpesaPayment
 
 __all__ = [
     "User",
@@ -39,4 +41,7 @@ __all__ = [
     "AlertType",
     "AlertSeverity",
     "AlertStatus",
+    "PaymentIntent",
+    "PaymentIntentStatus",
+    "MpesaPayment",
 ]
