@@ -210,16 +210,22 @@ function AppRoutes() {
 
 function App() {
     return (
+        <div className="p-10 text-center">
+            <h1 className="text-xl font-bold">App Structure Loaded</h1>
+            <p>Auth, Shift, and Offline providers are DISABLED.</p>
+        </div>
+        /*
         <AuthProvider>
-            {/* <ShiftProvider> */}
-            {/* <OfflineProvider> */}
-            <BrowserRouter>
-                {/* <OfflineBanner /> */}
-                <AppRoutes />
-            </BrowserRouter>
-            {/* </OfflineProvider> */}
-            {/* </ShiftProvider> */}
+            <ShiftProvider>
+                <OfflineProvider>
+                    <BrowserRouter>
+                         <OfflineBanner />
+                        <AppRoutes />
+                    </BrowserRouter>
+                </OfflineProvider>
+            </ShiftProvider>
         </AuthProvider>
+        */
     );
 }
 
