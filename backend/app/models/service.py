@@ -11,6 +11,7 @@ class PricingMode(str, enum.Enum):
     PER_MINUTE = "PER_MINUTE"
     PER_PAGE = "PER_PAGE"
     PER_JOB = "PER_JOB"
+    BUNDLE = "BUNDLE"
 
 
 class Service(Base):
